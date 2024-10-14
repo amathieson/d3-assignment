@@ -33,10 +33,10 @@ function RegisterEvents() {
     document.getElementById("fetch").onclick = FetchData;
 }
 
-// Initialise Leaflet with a default tile layer
+// Initialise Leaflet with a default tile layers
 function InitMap() {
     const alidade = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; Stadia Maps',
+        attribution: 'Tiles &copy; Stadia Maps',
         minZoom: 2,
         maxZoom: 18,
     }).addTo(map);
@@ -78,14 +78,13 @@ function UpdateLayer() {
     vectorGroup.attr("transform", `translate(${-topLeft.x}, ${-topLeft.y})`);
 }
 
-function UpdateD3() {
-    // Re-render list of all towns
-    d3.select("#list").selectAll("li").data(Towns).join("li").html(d => {
-        return `<h2>${d.Town}</h2><sub>${d.County}</sub><p>Population: <b>${d.Population}</b></p>`;
-    }).on("click", (e, d) => { // Add Click event to list items to move map
-        map.flyTo(d, 12);
-    })
+// Number Formatting for better legibility based on https://stackoverflow.com/a/2901298
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
+// Process data using D3, render new DOM elements and vectors
+function UpdateD3() {
     UpdateLayer(); // Update the SVG canvas size and position
     // Compute the range of the values
     const maxPop = Towns.length === 1 ? Towns[0].Population : (Towns.reduce((a, b) => Math.max(a.Population ?? a, b.Population)));
@@ -115,7 +114,7 @@ function UpdateD3() {
         tooltip.style.left = e.clientX + "px";
         tooltip.innerHTML = `<h1>${d.Town}</h1>
       <sub>${d.County}</sub>
-      <p>Population: <b>${d.Population}</b></p>`;
+      <p>Population: <b>${numberWithCommas(d.Population)}</b></p>`;
     })
     vectorGroup.selectAll("circle").on("mousemove", (e, d) => {
         const tooltip = document.getElementById("tooltip");
@@ -125,25 +124,30 @@ function UpdateD3() {
     vectorGroup.selectAll("circle").on("mouseout", (e, d) => {
         document.getElementById("tooltip").style.opacity = "0";
     })
+
+
+    // Re-render list of all towns
+    d3.select("#list").selectAll("li").data(Towns).join("li").html(d => {
+        return `<h2>${d.Town}</h2><sub>${d.County}</sub><p>Population: <b>${numberWithCommas(d.Population)}</b></p>`;
+    }).on("click", (e, d) => { // Add Click event to list items to move map
+        map.flyTo(d, 12);
+    })
 }
 
 
 // Update the SVG's position and redraw when the map moves or zooms
-map.on("moveend", function () {
-    UpdateD3();  // Redraw elements to match the new map state
-});
+map.on("move", UpdateD3)
 
 // Trigger a resize on initial load to correctly position the SVG
-map.on("zoomend", function () {
-    UpdateD3();
-});
+map.on("zoomend", UpdateD3);
 
+// Project latitude and longitude onto the map - Based on https://bost.ocks.org/mike/leaflet/
 function projectPoint(x, y) {
-    // Based on https://bost.ocks.org/mike/leaflet/
     const point = map.latLngToLayerPoint(new L.LatLng(x, y));
     return [point.x, point.y];
 }
 
+// Update Button text based on the value of the slider
 function UpdateValue() {
     TownCount = document.getElementById("number").value;
     document.getElementById("fetch").innerText = `Load ${TownCount} Towns`
