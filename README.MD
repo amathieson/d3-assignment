@@ -6,5 +6,5 @@ Project bundled using Vite.JS - to run install the dependencies using [Node.js](
 Project can then be launched using
 ```npm run dev```
 
-Precompiled static files can be found in the `/build` directory and can be re-built using
+Precompiled static files can be found in the `/dist` directory and can be re-built using
 ```npm run build```
